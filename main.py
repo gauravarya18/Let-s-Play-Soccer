@@ -24,7 +24,10 @@ def markingPlayers(starting,starting1,ending,ending1,halfStarting,halfStarting1,
         R1 = (random.randint(starting+20,ending-20),random.randint(starting1+20,ending1-20))
 
     image = cv2.circle(image,B1, radius, (255, 0, 0), thickness)
+    image = cv2.putText(image, "B1", (B1[0]-14,B1[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
+
     image = cv2.circle(image,R1 , radius, (0,0,255), thickness)
+    image = cv2.putText(image, "R1", (R1[0]-14,R1[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
 
 
     B2 = (random.randint(halfStarting+20,halfEnding-20),random.randint(halfStarting1+20,halfEnding1-20))
@@ -37,7 +40,9 @@ def markingPlayers(starting,starting1,ending,ending1,halfStarting,halfStarting1,
             break
         R2 = (random.randint(halfStarting+20,halfEnding-20),random.randint(halfStarting1+20,halfEnding1-20))
     image = cv2.circle(image, B2 , radius, (255, 0, 0), thickness)
+    image = cv2.putText(image, "B2", (B2[0]-14,B2[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
     image = cv2.circle(image, R2, radius, (0,0,255), thickness)
+    image = cv2.putText(image, "R2", (R2[0]-14,R2[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
 
     B3 = (random.randint(halfStarting+20,halfEnding-20),random.randint(halfStarting1+20,halfEnding1-20))
     while(True):
@@ -64,10 +69,13 @@ def markingPlayers(starting,starting1,ending,ending1,halfStarting,halfStarting1,
             break
         R3 = (random.randint(halfStarting+20,halfEnding-20),random.randint(halfStarting1+20,halfEnding1-20))
     image = cv2.circle(image, B3, radius, (255, 0, 0), thickness)
+    image = cv2.putText(image, "B3", (B3[0]-14,B3[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
     image = cv2.circle(image, R3, radius, (0,0,255), thickness)
+    image = cv2.putText(image, "R3", (R3[0]-14,R3[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
 
     B4 = (285, 395)
     image = cv2.circle(image, B4, radius, (255, 0, 0), thickness)
+    image = cv2.putText(image, "B4", (B4[0]-14,B4[1]+10), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255,255,255), 1, cv2.LINE_AA)
     return (B1,B2,B3,B4,R1,R2,R3,image)
 
 def getNormalized(Matrix):
@@ -152,7 +160,7 @@ def bestPathComputation(combineNormalizedDistance,comparePoints,Goal):
                     dist = np.linalg.norm(point-pointTemp)
                     matrixDistance.append([dist,i[0]])
 
-                    d = np.linalg.norm(pointTemp-np.array(Goal))
+                    d = np.linalg.norm(pointTemp-np.array(Goal)) + 1
                     goalDistances.append([d,i[0]])
 
                     minDistance = 999999999
@@ -176,6 +184,67 @@ def bestPathComputation(combineNormalizedDistance,comparePoints,Goal):
                     i[1]=False
         utilityForBestPaths.append((Utility,k[1]))
     return utilityForBestPaths
+
+def recursiveAllPathComputation(Visited,Utility,Goal,allPossiblePoints):
+    if(Visited[len(Visited)-1]==Goal):
+        xx = []
+        for i in Visited:
+            xx.append(i)
+        xx.append(Utility)
+        allPath.append(xx)
+        return
+    else:
+        
+        curr = Visited[len(Visited)-1]
+        point = np.array(curr)
+        matrixDistance = []
+        closestRedDistance = []
+        goalDistances =[]
+
+        for i in allPossiblePoints:
+            if(i not in Visited):
+                pointTemp = np.array(i)
+                dist = np.linalg.norm(point-pointTemp)
+                matrixDistance.append([dist,i])
+
+                d = np.linalg.norm(pointTemp-np.array(Goal)) + 1
+                goalDistances.append([d,i])
+                minDistance = 999999999
+                for j in oppositePlayers:
+                    pointRed = np.array(j)
+                    redDistance = np.linalg.norm(pointTemp-pointRed)
+                    if(redDistance<minDistance):
+                        minDistance=redDistance
+                closestRedDistance.append([1/minDistance,i])
+        
+        normalizedDistanceBestPath = getNormalized(matrixDistance)
+        normalizedOppDistanceBestPath = getNormalized(closestRedDistance)
+        normalizedGoalDistanceBestPath = getNormalized(goalDistances)
+        combineNormalizedDistanceBestPath = combine(Distance,normalizedDistanceBestPath,nearRedPlayerDistance,normalizedOppDistanceBestPath,GoalDistance,normalizedGoalDistanceBestPath)
+
+        for i in combineNormalizedDistanceBestPath:
+            Visited.append(i[1])
+            Utility = Utility + i[0]
+            recursiveAllPathComputation(Visited,Utility,Goal,allPossiblePoints)
+            Visited.pop(len(Visited)-1)
+            Utility = Utility - i[0]
+        
+        return
+
+
+def AllPathComputation(combineNormalizedDistance,allPossiblePoints,Goal,B4):
+    
+    Visted = []
+    Visted.append(B4)
+    for k in combineNormalizedDistance:
+        Utility = k[0]
+        n = k[1]
+        Visted.append(n)
+        recursiveAllPathComputation(Visted,Utility,Goal,allPossiblePoints)
+        Visted.pop(len(Visted)-1)
+
+    return 
+
 
 imported_Img = Image.open("C:/Users/Gaurav Arya/Desktop/Assignment 1/AI2_Assignment1_T3_2021.PNG")
 pixels = imported_Img.load()
@@ -274,9 +343,9 @@ cv2.destroyAllWindows()
 utilityForBestMove = 0
 utilityFor2ndBestMove = 0
 
-Distance = 0.4
+Distance = 0.5
 nearRedPlayerDistance = 0.4
-GoalDistance = 0.2
+GoalDistance = 0.1
 
 Current = B4
 point = np.array(Current)
@@ -291,7 +360,7 @@ for i in comparePoints:
         dist = np.linalg.norm(point-pointTemp)
         matrixDistance.append([dist,i[0]])
 
-        d = np.linalg.norm(pointTemp-np.array(Goal))
+        d = np.linalg.norm(pointTemp-np.array(Goal)) + 1
         goalDistances.append([d,i[0]])
 
         minDistance = 999999999
@@ -317,6 +386,14 @@ comparePoints = [[B1,True],[B2,True],[B3,True],[B4,False],[Goal,False]]
 print("Best Move Strategy")
 for i in utilityForBestPaths:
     print(i[0],"--",i[1][0],i[1][1])
+
+print("All Paths")
+allPath =[]
+AllPathComputation(combineNormalizedDistance,(B1,B2,B3,B4,Goal),Goal,B4)
+for i in range(0,len(allPath)):
+    print("Path"+str(i))
+    print(allPath[i])
+
 
 print("Best Path")
 
@@ -346,15 +423,28 @@ for i in comparePoints:
     if(i[0]==Next):
         i[1]=False
 
+Passes =[]
+
+
+font = cv2.FONT_HERSHEY_TRIPLEX
+org = (230, 500)
+fontScale = 1
+color = (0,140,255)
+thickness = 2
+
 
 # Displaying
-imageTemp = cv2.line(image_b4, Current, Next, (0,0,0), 2)
+passNumber = 1
+Passes.append((Current,Next))
+text = "Pass :" + str(passNumber)
+imageTemp = cv2.line(image_b4, Current, Next, (0,0,0), 1)
+imageTemp = cv2.putText(imageTemp, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
 cv2.imshow('image',imageTemp)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 imageTemp = cv2.imread("C:/Users/Gaurav Arya/Desktop/AI2/Image_withoutBall.PNG")
-imageTemp = cv2.line(imageTemp, Current, Next, (0,0,0), 2)
+imageTemp = cv2.line(imageTemp, Current, Next, (0,0,0), 1)
 imageTemp = cv2.circle(imageTemp, (Next[0],Next[1]-30) , 10, (0,0,0), -1)
 cv2.imshow('image',imageTemp)
 cv2.waitKey(0)
@@ -376,7 +466,7 @@ while(Next != Goal):
             dist = np.linalg.norm(point-pointTemp)
             matrixDistance.append([dist,i[0]])
 
-            d = np.linalg.norm(pointTemp-np.array(Goal))
+            d = np.linalg.norm(pointTemp-np.array(Goal)) + 1
             goalDistances.append([d,i[0]])
 
             minDistance = 999999999
@@ -413,8 +503,19 @@ while(Next != Goal):
     for i in comparePoints:
         if(i[0]==Next):
             i[1]=False
+
     # Displaying
-    imageTemp = cv2.line(imageTemp, Current, Next, (0,0,0), 2)
+    if(Next != Goal):
+        passNumber = passNumber +1 
+        text = "Pass :" + str(passNumber)
+    else:
+        text = "Goal !!"
+
+
+    Passes.append((Current,Next))
+    for i in Passes:
+        imageTemp = cv2.line(imageTemp, i[0], i[1], (0,0,0), 1)
+    imageTemp = cv2.putText(imageTemp, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
     cv2.imshow('image',imageTemp)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -424,7 +525,8 @@ while(Next != Goal):
     else:
         constant = -30
     imageTemp = cv2.imread("C:/Users/Gaurav Arya/Desktop/AI2/Image_withoutBall.PNG")
-    imageTemp = cv2.line(imageTemp, Current, Next, (0,0,0), 2)
+    for i in Passes:
+        imageTemp = cv2.line(imageTemp, i[0], i[1], (0,0,0), 1)
     imageTemp = cv2.circle(imageTemp, (Next[0],Next[1]+constant) , 10, (0,0,0), -1)
     cv2.imshow('image',imageTemp)
     cv2.waitKey(0)
